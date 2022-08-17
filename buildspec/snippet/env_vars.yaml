@@ -1,0 +1,9 @@
+# Snippet to set environment variables
+
+      # Set environment variables specified in module variable var.env_vars
+      - ENV_VAR=$(aws ssm get-parameter --name "/$${APP}/env_vars/$${ENV}" --with-decryption --output text --query Parameter.Value || echo {})
+      - SECRETS=$(aws ssm get-parameter --name "/$${APP}/secrets/$${ENV}" --with-decryption --output text --query Parameter.Value || echo {})
+      - $(echo $ENV_VAR | jq -r 'to_entries | .[] | "export " + .key + "=" + .value')
+      - $(echo $SECRETS | jq -r 'to_entries | .[] | "export " + .key + "=" + .value')
+      - unset ENV_VAR
+      - unset SECRETS

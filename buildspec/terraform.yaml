@@ -1,0 +1,23 @@
+version: 0.2
+
+env:
+  shell: bash
+  exported-variables:
+    - OUTPUT
+
+phases:
+  install:
+    commands:
+      - cd $SRC
+      - tfswitch || echo .
+      ${env_vars_snippet}
+
+  pre_build:
+    commands:
+      - export TF_INPUT=0
+      - terraform init || if [ ! -z $TF_WORKSPACE ]; then terraform workspace new $TF_WORKSPACE && terraform init; fi
+
+  build:
+    commands:
+      - terraform apply -auto-approve $(eval "echo $ARGS")
+      - OUTPUT=$(terraform output -json | jq 'to_entries[] | {(.key):(.value.value)}' | jq -s add)

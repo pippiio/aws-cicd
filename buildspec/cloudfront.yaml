@@ -1,0 +1,17 @@
+version: 0.2
+
+env:
+  shell: bash
+  exported-variables:
+    - OUTPUT
+
+phases:
+  pre_build:
+    commands:
+      ${env_vars_snippet}
+      ${assume_role_snippet}
+      - PATHS=$${DST:-/*}
+
+  build:
+    commands:
+      - aws cloudfront create-invalidation --distribution-id  $(eval "echo $SRC") --paths "$PATHS"

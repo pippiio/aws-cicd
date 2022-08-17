@@ -1,0 +1,48 @@
+version: 0.2
+
+env:
+  shell: bash
+  exported-variables:
+    - OUTPUT
+
+phases:
+  install:
+    commands:
+      - /usr/local/bin/dockerd-entrypoint.sh
+      - REGISTRY=$DST
+      ${env_vars_snippet}
+
+  pre_build:
+    commands:
+      - GITHASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | head -c 8)
+      - DIGEST=$(sha256sum <(find ./$SRC/. -type f -exec sha256sum {} \; | sort) | head -c 12)
+
+      # Lookup existing image by sha digest tag
+      - aws ecr get-login-password --region ${aws_region} | docker login --username AWS --password-stdin ${aws_account}.dkr.ecr.${aws_region}.amazonaws.com
+      - docker manifest inspect $REGISTRY:sha256-$DIGEST > /dev/null || UNKNOWN=true
+      - |
+        if [ ! -z "$docker_username" ]
+        then
+          echo Docker login
+          docker login --username $docker_username --password $docker_password
+        fi
+
+  build:
+    commands:
+      - |
+        if [ ! -z "$UNKNOWN" ]
+        then
+          docker build $SRC -t $REGISTRY:latest -t $REGISTRY:git-$GITHASH -t $REGISTRY:build-$CODEBUILD_BUILD_NUMBER -t $REGISTRY:sha256-$DIGEST $ARGS
+        else
+          echo "An image with same source sha256 already exists (sha256-$DIGEST). Skipping build."
+        fi
+
+  post_build:
+    commands:
+      - |
+        if [ ! -z "$UNKNOWN" ]
+        then
+          aws ecr get-login-password --region ${aws_region} | docker login --username AWS --password-stdin ${aws_account}.dkr.ecr.${aws_region}.amazonaws.com
+          docker push $REGISTRY --all-tags
+        fi
+      - if [ -f "$SRC/docker-compose.yaml" ]; then aws s3 cp $SRC/docker-compose.yaml s3://${artifact_bucket}/$${APP}/$${ACTION}/ --sse aws:kms --sse-kms-key-id ${kms_id}; fi

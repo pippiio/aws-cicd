@@ -1,0 +1,11 @@
+# Assuming IAM ci/cd role
+      - |
+        if [ ! -z "$ASSUME_ROLE" ]
+        then
+           echo "Assuming role $ASSUME_ROLE"
+           aws_credentials=$(aws sts assume-role --role-arn $ASSUME_ROLE --role-session-name cicd)
+           export AWS_ACCESS_KEY_ID=$(echo $aws_credentials | jq -r '.Credentials.AccessKeyId')
+           export AWS_SECRET_ACCESS_KEY=$(echo $aws_credentials | jq -r '.Credentials.SecretAccessKey')
+           export AWS_SESSION_TOKEN=$(echo $aws_credentials | jq -r '.Credentials.SessionToken')
+        fi
+        aws sts get-caller-identity

@@ -1,0 +1,36 @@
+version: 0.2
+
+env:
+  shell: bash
+  exported-variables:
+    - OUTPUT
+
+phases:
+  install:
+    commands:
+      - GITHASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | head -c 8)
+      - REGISTRY=$DST
+
+  pre_build:
+    commands:
+      - DIGEST=$(sha256sum <(find ./$SRC/. -type f -exec sha256sum {} \; | sort) | head -c 12)
+      - aws ecr get-login-password --region ${aws_region} | docker login --username AWS --password-stdin ${aws_account}.dkr.ecr.${aws_region}.amazonaws.com
+      - docker manifest inspect $REGISTRY:sha256-$DIGEST > /dev/null || UNKNOWN=true
+
+  build:
+    commands:
+      - |
+        if [ ! -z "$UNKNOWN" ]
+        then
+          docker build $SRC -t $REGISTRY:latest -t $REGISTRY:git-$GITHASH -t $REGISTRY:build-$CODEBUILD_BUILD_NUMBER -t $REGISTRY:sha256-$DIGEST $ARGS
+        else
+          echo "An image with same source sha256 already exists (sha256-$DIGEST). Skipping build."
+        fi
+
+  post_build:
+    commands:
+      - |
+        if [ ! -z "$UNKNOWN" ]
+        then
+          docker push $REGISTRY --all-tags
+        fi
