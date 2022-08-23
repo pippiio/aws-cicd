@@ -32,17 +32,15 @@ phases:
       - |
         if [ ! -z "$UNKNOWN" ]
         then
-          docker build $SRC -t $REGISTRY:latest -t $REGISTRY:git-$GITHASH -t $REGISTRY:build-$CODEBUILD_BUILD_NUMBER -t $REGISTRY:sha256-$DIGEST $ARGS
+          docker build $SRC -t $REGISTRY:sha256-$DIGEST $ARGS -t $REGISTRY:build-$CODEBUILD_BUILD_NUMBER -t $REGISTRY:latest -t $REGISTRY:git-$GITHASH
         else
-          echo "An image with same source sha256 already exists (sha256-$DIGEST). Skipping build."
+          echo "An image with same source sha256 already exists (sha256-$DIGEST). Pulling existing image."
+          docker pull $REGISTRY:sha256-$DIGEST
         fi
+      - docker tag $REGISTRY:sha256-$DIGEST $REGISTRY:$ENV
 
   post_build:
     commands:
-      - |
-        if [ ! -z "$UNKNOWN" ]
-        then
-          aws ecr get-login-password --region ${aws_region} | docker login --username AWS --password-stdin ${aws_account}.dkr.ecr.${aws_region}.amazonaws.com
-          docker push $REGISTRY --all-tags
-        fi
+      - aws ecr get-login-password --region ${aws_region} | docker login --username AWS --password-stdin ${aws_account}.dkr.ecr.${aws_region}.amazonaws.com
+      - docker push $REGISTRY --all-tags
       - if [ -f "$SRC/docker-compose.yaml" ]; then aws s3 cp $SRC/docker-compose.yaml s3://${artifact_bucket}/$${APP}/$${ACTION}/ --sse aws:kms --sse-kms-key-id ${kms_id}; fi
