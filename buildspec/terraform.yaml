@@ -15,6 +15,11 @@ phases:
   pre_build:
     commands:
       - export TF_INPUT=0
+      - |
+        if [ ! -z $TF_WORKSPACE ]
+        then
+          terraform workspace list | grep $TF_WORKSPACE || terraform workspace new $TF_WORKSPACE
+        fi
       - terraform init || if [ ! -z $TF_WORKSPACE ]; then terraform workspace new $TF_WORKSPACE && terraform init; fi
 
   build:
