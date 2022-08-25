@@ -20,7 +20,7 @@ phases:
         then
           terraform workspace list | grep $TF_WORKSPACE || terraform workspace new $TF_WORKSPACE
         fi
-      - terraform init || if [ ! -z $TF_WORKSPACE ]; then terraform workspace new $TF_WORKSPACE && terraform init; fi
+      - terraform init
 
   build:
     commands:
