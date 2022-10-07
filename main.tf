@@ -25,10 +25,7 @@ locals {
     release = 3
   }
 
-  config = defaults(var.config, {
-    log_retention_in_days      = 7
-    artifact_retention_in_days = 30
-  })
+  config = var.config
 
   git_repository_breakdown = { for k, v in var.applications : k =>
     flatten(regexall("(github.com|bitbucket.org)[:\\/]([^\\/]+)\\/([^\\/]+)\\.git", v.git_repository_url)) if v.git_repository_url != null

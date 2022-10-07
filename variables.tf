@@ -4,8 +4,8 @@ variable "config" {
     build_image = optional(string)
     subnet_ids  = optional(set(string))
 
-    log_retention_in_days      = optional(number)
-    artifact_retention_in_days = optional(number)
+    log_retention_in_days      = optional(number, 7)
+    artifact_retention_in_days = optional(number, 30)
 
     git_connection = optional(map(string))
     docker_connection = optional(object({
