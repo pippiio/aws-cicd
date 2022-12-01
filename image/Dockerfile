@@ -64,7 +64,7 @@ RUN curl -s -qL -o terraform_install.zip "https://${TF_BUCKET}/terraform/${TF_VE
 # ==== Terraform END ====
 
 # ==== NodeJS ====
-ENV NODE_VERSION=14
+ENV NODE_VERSION=16
 
 RUN curl -sL https://rpm.nodesource.com/setup_${NODE_VERSION}.x | bash - \
     && yum install -y nodejs \
